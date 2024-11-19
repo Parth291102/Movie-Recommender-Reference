@@ -5,6 +5,7 @@ from processing import preprocess
 from processing.display import Main
 import json
 import hashlib
+import pandas as pd
 
 # Setting the wide mode as default
 st.set_page_config(layout="wide")
@@ -18,6 +19,12 @@ if 'selected_movie_name' not in st.session_state:
 
 if 'user_menu' not in st.session_state:
     st.session_state['user_menu'] = ""
+
+if 'username' not in st.session_state:
+    st.session_state['username'] = None
+
+if 'recommendation_history' not in st.session_state:
+    st.session_state['recommendation_history'] = []
 
 # Authentication Helpers
 def load_users():
@@ -98,8 +105,8 @@ def main_dashboard(new_df, movies):
         # To display menu
         st.session_state.user_menu = streamlit_option_menu.option_menu(
             menu_title='What are you looking for? 👀',
-            options=['Recommend me a similar movie', 'Describe me a movie', 'Check all Movies'],
-            icons=['film', 'film', 'film'],
+            options=['Recommend me a similar movie', 'Describe me a movie', 'Check all Movies', 'Recommendation History'],
+            icons=['film', 'film', 'film', 'clock-history'],
             menu_icon='list',
             orientation="horizontal",
         )
@@ -112,6 +119,9 @@ def main_dashboard(new_df, movies):
 
         elif st.session_state.user_menu == 'Check all Movies':
             paging_movies()
+        
+        elif st.session_state.user_menu == 'Recommendation History':
+            display_recommendation_history()
 
     def recommend_display():
 
@@ -131,10 +141,10 @@ def main_dashboard(new_df, movies):
             recommendation_tags(new_df, selected_movie_name, r'Files/similarity_tags_keywords.pkl',"on the basis of keywords are")
             recommendation_tags(new_df, selected_movie_name, r'Files/similarity_tags_tcast.pkl',"on the basis of cast are")
 
-    def recommendation_tags(new_df, selected_movie_name, pickle_file_path,str):
+    def recommendation_tags(new_df, selected_movie_name, pickle_file_path,description):
 
         movies, posters = preprocess.recommend(new_df, selected_movie_name, pickle_file_path)
-        st.subheader(f'Best Recommendations {str}...')
+        st.subheader(f'Best Recommendations {description}...')
 
         rec_movies = []
         rec_posters = []
@@ -148,6 +158,14 @@ def main_dashboard(new_df, movies):
                 rec_posters.append(posters[i])
                 displayed.append(j)
                 cnt += 1
+        
+        # Save recommendations to history
+        st.session_state['recommendation_history'].append({
+            "movie": selected_movie_name,
+            "recommendations": rec_movies,
+            "time": st.session_state.get("current_time", str(pd.Timestamp.now()))  # Optional timestamp
+            })
+
 
         # Columns to display informations of movies i.e. movie title and movie poster
         col1, col2, col3, col4, col5 = st.columns(5)
@@ -166,6 +184,16 @@ def main_dashboard(new_df, movies):
         with col5:
             st.text(rec_movies[4])
             st.image(rec_posters[4])
+    
+    def display_recommendation_history():
+        st.title("Recommendation History")
+        if not st.session_state['recommendation_history']:
+            st.write("No recommendations made yet.")
+        else:
+            for entry in st.session_state['recommendation_history']:
+                st.write(f"**{entry['movie']}** - Recommended on {entry['time']}")
+                for rec in entry["recommendations"]:
+                    st.write(f"- {rec}")
 
     def display_movie_details():
 
