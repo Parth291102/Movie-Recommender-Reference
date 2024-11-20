@@ -6,6 +6,8 @@ from processing.display import Main
 import json
 import hashlib
 import pandas as pd
+import random
+import time
 
 # Setting the wide mode as default
 st.set_page_config(layout="wide")
@@ -108,8 +110,8 @@ def main_dashboard(new_df, movies):
         # To display menu
         st.session_state.user_menu = streamlit_option_menu.option_menu(
             menu_title='What are you looking for? 👀',
-            options=['Recommend me a similar movie', 'Describe me a movie', 'Check all Movies', 'Recommendation History','View Feedback'],
-            icons=['film', 'film', 'film', 'clock-history','hand-thumbs-up'],
+            options=['Trending Top 10','Recommend me a similar movie', 'Describe me a movie', 'Check all Movies', 'Recommendation History','View Feedback'],
+            icons=['stars','film', 'film', 'film', 'clock-history','hand-thumbs-up'],
             menu_icon='list',
             orientation="horizontal",
         )
@@ -128,6 +130,9 @@ def main_dashboard(new_df, movies):
             
         elif st.session_state.user_menu == "View Feedback":
             display_feedback_summary()
+        
+        elif st.session_state.user_menu == "Trending Top 10":  
+            display_trending_top_10()
 
     def recommend_display():
 
@@ -174,7 +179,7 @@ def main_dashboard(new_df, movies):
         st.session_state['recommendation_history'].append({
             "movie": selected_movie_name,
             "recommendations": rec_movies,
-            "time": st.session_state.get("current_time", str(pd.Timestamp.now()))  # Optional timestamp
+            "time": st.session_state.get("current_time", str(pd.Timestamp.now()))  
             })
 
 
@@ -221,6 +226,37 @@ def main_dashboard(new_df, movies):
                 st.write(f"**{entry['movie']}** - Recommended on {entry['time']}")
                 for rec in entry["recommendations"]:
                     st.write(f"- {rec}")
+    
+    def display_trending_top_10():
+        st.title("Trending Top 10 Movies This Week 🎬")
+
+        # Seed based on current week
+        week_number = pd.Timestamp.now().week
+        random.seed(week_number)  # Ensure consistency for the week
+
+        # Randomly select 10 movies
+        trending_movies = movies.sample(n=10, random_state=week_number)
+        
+        for index, row in trending_movies.iterrows():
+            # Use columns for layout
+            col1, col2 = st.columns([1, 2])
+
+            # Display poster in the left column
+            with col1:
+                poster_url = preprocess.fetch_posters(row['movie_id'])
+                st.image(poster_url, width=200)
+
+            # Display details in the right column
+            with col2:
+                # Combine overview into a single sentence
+                overview = " ".join(row['overview']) if isinstance(row['overview'], list) else row['overview']
+                st.markdown(f"### {row['title']}")
+                st.markdown(f"<b>Genre:</b> 🎭 <i>{', '.join(row.iloc[3]) if isinstance(row.iloc[3], list) else row.iloc[3]}</i>", unsafe_allow_html=True)
+                st.markdown(f"**Release Date**: 📅 {row['release_date']}")
+                st.write(overview)
+
+            # Add a divider
+            st.markdown("---")
 
     def display_movie_details():
 
