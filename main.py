@@ -25,6 +25,9 @@ if 'username' not in st.session_state:
 
 if 'recommendation_history' not in st.session_state:
     st.session_state['recommendation_history'] = []
+    
+if "feedback" not in st.session_state:
+    st.session_state["feedback"] = {}
 
 # Authentication Helpers
 def load_users():
@@ -105,8 +108,8 @@ def main_dashboard(new_df, movies):
         # To display menu
         st.session_state.user_menu = streamlit_option_menu.option_menu(
             menu_title='What are you looking for? 👀',
-            options=['Recommend me a similar movie', 'Describe me a movie', 'Check all Movies', 'Recommendation History'],
-            icons=['film', 'film', 'film', 'clock-history'],
+            options=['Recommend me a similar movie', 'Describe me a movie', 'Check all Movies', 'Recommendation History','View Feedback'],
+            icons=['film', 'film', 'film', 'clock-history','hand-thumbs-up'],
             menu_icon='list',
             orientation="horizontal",
         )
@@ -122,6 +125,9 @@ def main_dashboard(new_df, movies):
         
         elif st.session_state.user_menu == 'Recommendation History':
             display_recommendation_history()
+            
+        elif st.session_state.user_menu == "View Feedback":
+            display_feedback_summary()
 
     def recommend_display():
 
@@ -140,6 +146,10 @@ def main_dashboard(new_df, movies):
                                 r'Files/similarity_tags_tprduction_comp.pkl',"from the same production company are")
             recommendation_tags(new_df, selected_movie_name, r'Files/similarity_tags_keywords.pkl',"on the basis of keywords are")
             recommendation_tags(new_df, selected_movie_name, r'Files/similarity_tags_tcast.pkl',"on the basis of cast are")
+            
+    def update_feedback(movie, status):
+        # Update feedback in session state
+        st.session_state["feedback"][movie] = status
 
     def recommendation_tags(new_df, selected_movie_name, pickle_file_path,description):
 
@@ -149,6 +159,7 @@ def main_dashboard(new_df, movies):
         rec_movies = []
         rec_posters = []
         cnt = 0
+        feedback = st.session_state.get("feedback", {})
         # Adding only 5 uniques recommendations
         for i, j in enumerate(movies):
             if cnt == 5:
@@ -172,18 +183,34 @@ def main_dashboard(new_df, movies):
         with col1:
             st.text(rec_movies[0])
             st.image(rec_posters[0])
+            st.button(f"👍 {rec_movies[0]}", on_click=update_feedback, args=(rec_movies[0], "like"), key=f"like_{rec_movies[0]}")
+            st.button(f"👎 {rec_movies[0]}", on_click=update_feedback, args=(rec_movies[0], "dislike"), key=f"dislike_{rec_movies[0]}")
+
         with col2:
             st.text(rec_movies[1])
             st.image(rec_posters[1])
+            st.button(f"👍 {rec_movies[1]}", on_click=update_feedback, args=(rec_movies[1], "like"), key=f"like_{rec_movies[1]}")
+            st.button(f"👎 {rec_movies[1]}", on_click=update_feedback, args=(rec_movies[1], "dislike"), key=f"dislike_{rec_movies[1]}")
+
         with col3:
             st.text(rec_movies[2])
             st.image(rec_posters[2])
+            st.button(f"👍 {rec_movies[2]}", on_click=update_feedback, args=(rec_movies[2], "like"), key=f"like_{rec_movies[2]}")
+            st.button(f"👎 {rec_movies[2]}", on_click=update_feedback, args=(rec_movies[2], "dislike"), key=f"dislike_{rec_movies[2]}")
+
         with col4:
             st.text(rec_movies[3])
             st.image(rec_posters[3])
+            st.button(f"👍 {rec_movies[3]}", on_click=update_feedback, args=(rec_movies[3], "like"), key=f"like_{rec_movies[3]}")
+            st.button(f"👎 {rec_movies[3]}", on_click=update_feedback, args=(rec_movies[3], "dislike"), key=f"dislike_{rec_movies[3]}")
+
         with col5:
             st.text(rec_movies[4])
             st.image(rec_posters[4])
+            st.button(f"👍 {rec_movies[4]}", on_click=update_feedback, args=(rec_movies[4], "like"), key=f"like_{rec_movies[4]}")
+            st.button(f"👎 {rec_movies[4]}", on_click=update_feedback, args=(rec_movies[4], "dislike"), key=f"dislike_{rec_movies[4]}")
+            
+        st.session_state["feedback"] = feedback  
     
     def display_recommendation_history():
         st.title("Recommendation History")
@@ -330,6 +357,26 @@ def main_dashboard(new_df, movies):
                     st.session_state['movie_number'] += 10
 
         display_all_movies(st.session_state['movie_number'])
+        
+    def display_feedback_summary():
+        st.title("Your Feedback Summary")
+        feedback = st.session_state.get("feedback", {})
+
+        if not feedback:
+            st.write("No feedback given yet.")
+        else:
+            likes = [movie for movie, status in feedback.items() if status == "like"]
+            dislikes = [movie for movie, status in feedback.items() if status == "dislike"]
+
+            if likes:
+                st.subheader("Movies You Liked:")
+                for movie in likes:
+                    st.write(f"👍 {movie}")
+
+            if dislikes:
+                st.subheader("Movies You Disliked:")
+                for movie in dislikes:
+                    st.write(f"👎 {movie}")
 
     def display_all_movies(start):
 
